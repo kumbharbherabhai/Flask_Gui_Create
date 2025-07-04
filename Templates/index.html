@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>cURL Tester Web</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: linear-gradient(to right, #e6f0ff, #ffffff);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 860px;
+            margin: auto;
+            background-color: #ffffff;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        h1 {
+            text-align: center;
+            color: #003366;
+            margin-bottom: 25px;
+        }
+
+        textarea, input, select {
+            width: 100%;
+            padding: 14px;
+            margin: 12px 0;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 1rem;
+            box-sizing: border-box;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        textarea:focus, input:focus, select:focus {
+            outline: none;
+            border-color: #3399ff;
+            box-shadow: 0 0 5px rgba(51, 153, 255, 0.5);
+        }
+
+        label {
+            font-weight: 600;
+            margin-top: 18px;
+            display: block;
+            color: #222;
+        }
+
+        .button-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            margin: 25px 0 10px;
+        }
+
+        button {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        #run-btn {
+            background-color: #28a745;
+        }
+
+        #run-btn:hover:not(:disabled) {
+            background-color: #218838;
+            transform: translateY(-2px);
+        }
+
+        #stop-btn {
+            background-color: #dc3545;
+        }
+
+        #stop-btn:hover:not(:disabled) {
+            background-color: #c82333;
+            transform: translateY(-2px);
+        }
+
+        #code-btn {
+            background-color: #007bff;
+        }
+
+        #code-btn:hover:not(:disabled) {
+            background-color: #0069d9;
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            background-color: #aaa !important;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        #output, #code-output {
+            white-space: pre-wrap;
+            background: #f9f9f9;
+            padding: 18px;
+            border-radius: 8px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.95rem;
+            border: 1px solid #ddd;
+            margin-top: 12px;
+            overflow-x: auto;
+        }
+
+        #code-output {
+            display: none;
+        }
+
+        #scraperapi-key-container, #post-data-container {
+            margin-top: 10px;
+            transition: all 0.3s ease-in-out;
+        }
+
+        .hidden {
+            display: none;
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        .visible {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        h3 {
+            margin-top: 30px;
+            color: #004085;
+        }
+
+        @keyframes pop {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.05); }
+        }
+
+        #progress-container {
+            width: 100%;
+            background-color: #e0e0e0;
+            border-radius: 8px;
+            height: 20px;
+            margin-top: 12px;
+            overflow: hidden;
+            display: none;
+        }
+
+        #progress-bar {
+            height: 100%;
+            width: 0;
+            background-color: #28a745;
+            border-radius: 8px 0 0 8px;
+            transition: width 0.4s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>cURL Tester Web</h1>
+        <form id="curl-form">
+            <div style="text-align:center; font-size: 1.5rem; font-weight: bold; color:#003366;">
+                👋 Welcome to the cURL Tester Dashboard!
+            </div>
+            <div style="text-align:center; margin-top: 10px; margin-bottom: 20px;">
+                <span style="
+                    background-color: #ffeaa7;
+                    padding: 10px 20px;
+                    border-radius: 25px;
+                    display: inline-block;
+                    font-weight: bold;
+                    color: #6d4c41;
+                    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+                    animation: pop 1s ease-in-out infinite alternate;
+                ">
+                    🚀 Test. 📡 Monitor. 💡 Analyze.
+                </span>
+            </div>
+
+            <label>🌀 cURL Command:</label>
+            <textarea id="curl-command" name="curl_command"></textarea>
+
+            <label for="expected-text">🔍 Expected Text (Optional):</label>
+            <input type="text" id="expected-text" name="expected_text" />
+
+            <label>🔁 Iterations:</label>
+            <input type="number" id="iterations" name="iterations" value="1" min="1" />
+
+            <label>⚙️ Concurrency:</label>
+            <input type="number" id="concurrency" name="concurrency" value="1" min="1" max="100" />
+
+            <label>🛠️ Select Request Engine:</label>
+            <select id="engine" name="engine">
+                <option value="requests">requests</option>
+                <option value="httpx">httpx</option>
+                <option value="curl_cffi">curl_cffi</option>
+            </select>
+
+            <label>🌐 Select Proxy Mode:</label>
+            <select id="proxy-mode" name="proxy_mode">
+                <option value="none">None</option>
+                <option value="static">Static (from list)</option>
+                <option value="scraperapi">ScraperAPI</option>
+            </select>
+
+            <div id="scraperapi-key-container" class="hidden">
+                <label for="scraperapi-key">🔑 Enter your ScraperAPI key:</label>
+                <input type="text" id="scraperapi-key" name="scraperapi_key" placeholder="e.g. 123456789abcdef" />
+            </div>
+
+            <label>📨 Select HTTP Method:</label>
+            <select id="http-method" name="http_method">
+                <option value="">(Auto from curl)</option>
+                <option value="GET">GET</option>
+                <option value="POST">POST</option>
+            </select>
+
+            <div id="post-data-container" class="hidden">
+                <label for="post-data">📝 POST Data (Optional):</label>
+                <textarea id="post-data" name="post_data" placeholder="e.g. key1=value1&key2=value2"></textarea>
+            </div>
+
+            <div class="button-row">
+                <button type="submit" id="run-btn">Run</button>
+                <button type="button" id="stop-btn" disabled>Stop</button>
+                <button type="button" id="code-btn">Code</button>
+            </div>
+
+            <div id="progress-container">
+                <div id="progress-bar"></div>
+            </div>
+        </form>
+
+        <h3>Output:</h3>
+        <div id="output"></div>
+
+        <h3>Python Code Snippet:</h3>
+        <div id="code-output"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById("curl-form");
+        const runBtn = document.getElementById("run-btn");
+        const stopBtn = document.getElementById("stop-btn");
+        const codeBtn = document.getElementById("code-btn");
+        const output = document.getElementById("output");
+        const codeOutput = document.getElementById("code-output");
+        const proxyModeSelect = document.getElementById("proxy-mode");
+        const httpMethodSelect = document.getElementById("http-method");
+        const scraperApiKeyContainer = document.getElementById("scraperapi-key-container");
+        const postDataContainer = document.getElementById("post-data-container");
+        const postDataTextarea = document.getElementById("post-data");
+        const progressContainer = document.getElementById("progress-container");
+        const progressBar = document.getElementById("progress-bar");
+
+        // Toggle ScraperAPI key input visibility
+        proxyModeSelect.addEventListener("change", () => {
+            if (proxyModeSelect.value === "scraperapi") {
+                scraperApiKeyContainer.classList.remove("hidden");
+                scraperApiKeyContainer.classList.add("visible");
+            } else {
+                scraperApiKeyContainer.classList.remove("visible");
+                scraperApiKeyContainer.classList.add("hidden");
+            }
+        });
+
+        // Toggle POST data visibility and clear post_data when not POST
+        httpMethodSelect.addEventListener("change", () => {
+            if (httpMethodSelect.value === "POST") {
+                postDataContainer.classList.remove("hidden");
+                postDataContainer.classList.add("visible");
+            } else {
+                postDataContainer.classList.remove("visible");
+                postDataContainer.classList.add("hidden");
+                postDataTextarea.value = ""; // Clear POST data when switching to GET or Auto
+            }
+        });
+
+        // Initialize POST data visibility and value based on default HTTP method
+        if (httpMethodSelect.value === "POST") {
+            postDataContainer.classList.remove("hidden");
+            postDataContainer.classList.add("visible");
+        } else {
+            postDataContainer.classList.remove("visible");
+            postDataContainer.classList.add("hidden");
+            postDataTextarea.value = ""; // Ensure POST data is cleared on page load if not POST
+        }
+
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            runBtn.disabled = true;
+            runBtn.textContent = "Running...";
+            stopBtn.disabled = false;
+            output.textContent = "Starting...";
+            codeOutput.style.display = "none";
+            codeOutput.textContent = "";
+            progressContainer.style.display = "block";
+            progressBar.style.width = "0%";
+
+            output.scrollIntoView({ behavior: "smooth", block: "start" });
+
+            const formData = new FormData(form);
+            const response = await fetch("/start", {
+                method: "POST",
+                body: formData
+            });
+
+            const data = await response.json();
+            if (data.error) {
+                output.textContent = data.error;
+                runBtn.disabled = false;
+                runBtn.textContent = "Run";
+                stopBtn.disabled = true;
+                progressContainer.style.display = "none";
+            } else {
+                pollStatus();
+            }
+        });
+
+        stopBtn.addEventListener("click", async () => {
+            await fetch("/stop", { method: "POST" });
+            stopBtn.disabled = true;
+        });
+
+        codeBtn.addEventListener("click", async () => {
+            const formData = new FormData(form);
+            const response = await fetch("/code", {
+                method: "POST",
+                body: formData
+            });
+            const data = await response.json();
+            codeOutput.style.display = "block";
+            codeOutput.textContent = data.code;
+        });
+
+        async function pollStatus() {
+            const response = await fetch("/status");
+            const data = await response.json();
+
+            // Update output messages
+            output.textContent = data.messages.join("\n");
+
+            // Update progress bar
+            const progress = (data.current / data.total) * 100 || 0;
+            progressBar.style.width = `${progress}%`;
+
+            if (data.running) {
+                setTimeout(pollStatus, 1000);
+            } else {
+                runBtn.disabled = false;
+                runBtn.textContent = "Run";
+                stopBtn.disabled = true;
+                progressBar.style.width = "100%";
+                setTimeout(() => {
+                    progressContainer.style.display = "none";
+                    progressBar.style.width = "0%";
+                }, 1500);
+            }
+        }
+    </script>
+</body>
+</html>

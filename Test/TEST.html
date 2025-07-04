@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>cURL Tester Web</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    :root {
+      --bg-color: #ffffff;
+      --text-color: #003366;
+      --card-bg: #ffffff;
+      --input-bg: #ffffff;
+      --input-border: #ccc;
+      --output-bg: #f9f9f9;
+      --label-color: #222;
+    }
+
+    [data-theme='dark'] {
+      --bg-color: #1e1e2f;
+      --text-color: #cfd8dc;
+      --card-bg: #2c2c3a;
+      --input-bg: #333344;
+      --input-border: #555;
+      --output-bg: #2e2e3e;
+      --label-color: #ddd;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 20px;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    .container {
+      max-width: 860px;
+      margin: auto;
+      background-color: var(--card-bg);
+      border-radius: 15px;
+      padding: 30px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+      transition: background 0.3s, color 0.3s;
+    }
+
+    h1 {
+      text-align: center;
+      color: var(--text-color);
+      margin-bottom: 25px;
+    }
+
+    label, textarea, input, select {
+      width: 100%;
+      margin: 12px 0;
+      box-sizing: border-box;
+      transition: all 0.3s;
+    }
+
+    label {
+      font-weight: 600;
+      margin-top: 18px;
+      color: var(--label-color);
+    }
+
+    textarea, input, select {
+      padding: 14px;
+      font-size: 1rem;
+      background: var(--input-bg);
+      border: 1px solid var(--input-border);
+      border-radius: 8px;
+      color: var(--text-color);
+    }
+
+    textarea:focus, input:focus, select:focus {
+      outline: none;
+      border-color: #3399ff;
+      box-shadow: 0 0 5px rgba(51, 153, 255, 0.5);
+    }
+
+    .button-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 15px;
+      margin: 25px 0 10px;
+    }
+
+    button {
+      flex: 1;
+      padding: 14px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      color: white;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    #run-btn { background-color: #28a745; }
+    #stop-btn { background-color: #dc3545; }
+    #code-btn { background-color: #007bff; }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-2px);
+    }
+
+    #run-btn:hover:not(:disabled) { background-color: #218838; }
+    #stop-btn:hover:not(:disabled) { background-color: #c82333; }
+    #code-btn:hover:not(:disabled) { background-color: #0069d9; }
+
+    button:disabled {
+      background-color: #aaa !important;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    #output, #code-output {
+      white-space: pre-wrap;
+      background: var(--output-bg);
+      padding: 18px;
+      border-radius: 8px;
+      font-family: 'Consolas', monospace;
+      font-size: 0.95rem;
+      border: 1px solid #ddd;
+      margin-top: 12px;
+      overflow-x: auto;
+      color: var(--text-color);
+    }
+
+    #code-output { display: none; }
+
+    #scraperapi-key-container {
+      margin-top: 10px;
+    }
+
+    .hidden { display: none; }
+    .visible { display: block; }
+
+    #progress-container {
+      width: 100%;
+      background-color: #e0e0e0;
+      border-radius: 8px;
+      height: 20px;
+      margin-top: 12px;
+      overflow: hidden;
+      display: none;
+    }
+
+    #progress-bar {
+      height: 100%;
+      width: 0;
+      background-color: #28a745;
+      border-radius: 8px 0 0 8px;
+      transition: width 0.4s ease;
+    }
+
+    .toggle-theme {
+      position: absolute;
+      top: 15px;
+      right: 30px;
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+
+    @keyframes pop {
+      0% { transform: scale(1); }
+      100% { transform: scale(1.05); }
+    }
+  </style>
+</head>
+<body data-theme="light">
+  <div class="toggle-theme" id="theme-toggle" title="Toggle dark/light mode">
+    <i class="fas fa-moon"></i>
+  </div>
+
+  <div class="container">
+    <h1>cURL Tester Web</h1>
+
+    <form id="curl-form">
+
+      <!-- Welcome Message -->
+      <div style="text-align:center; font-size: 1.5rem; font-weight: bold; color: var(--text-color); margin-top: 10px;">
+        <i class="fas fa-handshake"></i> Welcome to the cURL Tester Dashboard!
+      </div>
+
+      <!-- Banner -->
+      <div style="text-align:center; margin-top: 10px; margin-bottom: 20px;">
+        <span style="
+          background-color: #ffeaa7;
+          padding: 10px 20px;
+          border-radius: 25px;
+          display: inline-block;
+          font-weight: bold;
+          color: #6d4c41;
+          box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+          animation: pop 1s ease-in-out infinite alternate;
+        ">
+          <i class="fas fa-rocket"></i> Test. <i class="fas fa-broadcast-tower"></i> Monitor. <i class="fas fa-lightbulb"></i> Analyze.
+        </span>
+      </div>
+
+      <label><i class="fas fa-terminal"></i> cURL Command:</label>
+      <textarea id="curl-command" name="curl_command"></textarea>
+
+      <label><i class="fas fa-search"></i> Expected Text (Optional):</label>
+      <input type="text" id="expected-text" name="expected_text" />
+
+      <label><i class="fas fa-redo"></i> Iterations:</label>
+      <input type="number" id="iterations" name="iterations" value="1" min="1" />
+
+      <label><i class="fas fa-cogs"></i> Concurrency:</label>
+      <input type="number" id="concurrency" name="concurrency" value="1" min="1" max="100" />
+
+      <label><i class="fas fa-microchip"></i> Select Request Engine:</label>
+      <select id="engine" name="engine">
+        <option value="requests">requests</option>
+        <option value="httpx">httpx</option>
+        <option value="curl_cffi">curl_cffi</option>
+      </select>
+
+      <label><i class="fas fa-globe"></i> Select Proxy Mode:</label>
+      <select id="proxy-mode" name="proxy_mode">
+        <option value="none">None</option>
+        <option value="static">Static (from list)</option>
+        <option value="scraperapi">ScraperAPI</option>
+      </select>
+
+      <div id="scraperapi-key-container" class="hidden">
+        <label for="scraperapi-key"><i class="fas fa-key"></i> ScraperAPI Key:</label>
+        <input type="text" id="scraperapi-key" name="scraperapi_key" placeholder="e.g. 123456789abcdef" />
+      </div>
+
+      <label><i class="fas fa-paper-plane"></i> Select HTTP Method:</label>
+      <select id="http-method" name="http_method">
+        <option value="">(Auto from curl)</option>
+        <option value="GET">GET</option>
+        <option value="POST">POST</option>
+      </select>
+
+      <div class="button-row">
+        <button type="submit" id="run-btn">Run</button>
+        <button type="button" id="stop-btn" disabled>Stop</button>
+        <button type="button" id="code-btn">Code</button>
+      </div>
+
+      <div id="progress-container">
+        <div id="progress-bar"></div>
+      </div>
+    </form>
+
+    <h3>Output:</h3>
+    <div id="output"></div>
+
+    <h3>Python Code Snippet:</h3>
+    <div id="code-output"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById("curl-form");
+    const runBtn = document.getElementById("run-btn");
+    const stopBtn = document.getElementById("stop-btn");
+    const codeBtn = document.getElementById("code-btn");
+    const output = document.getElementById("output");
+    const codeOutput = document.getElementById("code-output");
+    const proxyModeSelect = document.getElementById("proxy-mode");
+    const scraperApiKeyContainer = document.getElementById("scraperapi-key-container");
+    const progressContainer = document.getElementById("progress-container");
+    const progressBar = document.getElementById("progress-bar");
+    const themeToggle = document.getElementById("theme-toggle");
+    const body = document.body;
+
+    proxyModeSelect.addEventListener("change", () => {
+      if (proxyModeSelect.value === "scraperapi") {
+        scraperApiKeyContainer.classList.remove("hidden");
+        scraperApiKeyContainer.classList.add("visible");
+      } else {
+        scraperApiKeyContainer.classList.remove("visible");
+        scraperApiKeyContainer.classList.add("hidden");
+      }
+    });
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      runBtn.disabled = true;
+      runBtn.textContent = "Running...";
+      stopBtn.disabled = false;
+      output.textContent = "Starting...";
+      codeOutput.style.display = "none";
+      codeOutput.textContent = "";
+      progressContainer.style.display = "block";
+      progressBar.style.width = "0%";
+
+      output.scrollIntoView({ behavior: "smooth", block: "start" });
+
+      const formData = new FormData(form);
+      const response = await fetch("/start", {
+        method: "POST",
+        body: formData
+      });
+
+      const data = await response.json();
+      if (data.error) {
+        output.textContent = data.error;
+        runBtn.disabled = false;
+        runBtn.textContent = "Run";
+        stopBtn.disabled = true;
+        progressContainer.style.display = "none";
+      } else {
+        pollStatus();
+      }
+    });
+
+    stopBtn.addEventListener("click", async () => {
+      await fetch("/stop", { method: "POST" });
+      stopBtn.disabled = true;
+    });
+
+    codeBtn.addEventListener("click", async () => {
+      const formData = new FormData(form);
+      const response = await fetch("/code", {
+        method: "POST",
+        body: formData
+      });
+      const data = await response.json();
+      codeOutput.style.display = "block";
+      codeOutput.textContent = data.code;
+    });
+
+    async function pollStatus() {
+      const response = await fetch("/status");
+      const data = await response.json();
+      output.textContent = data.messages.join("\n");
+
+      if (typeof data.progress === "number") {
+        let progress = Math.min(Math.max(data.progress, 0), 100);
+        progressBar.style.width = progress + "%";
+      }
+
+      if (data.running) {
+        setTimeout(pollStatus, 1000);
+      } else {
+        runBtn.disabled = false;
+        runBtn.textContent = "Run";
+        stopBtn.disabled = true;
+        progressBar.style.width = "100%";
+        setTimeout(() => {
+          progressContainer.style.display = "none";
+          progressBar.style.width = "0%";
+        }, 1500);
+      }
+    }
+
+    themeToggle.addEventListener("click", () => {
+      const currentTheme = body.getAttribute("data-theme");
+      const newTheme = currentTheme === "light" ? "dark" : "light";
+      body.setAttribute("data-theme", newTheme);
+      themeToggle.innerHTML = newTheme === "dark" ? `<i class="fas fa-sun"></i>` : `<i class="fas fa-moon"></i>`;
+    });
+  </script>
+</body>
+</html>
